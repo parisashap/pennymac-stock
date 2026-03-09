@@ -339,11 +339,10 @@ tr:hover td {
   font-weight: 600;
   font-size: 0.95rem;
   color: #7c3aed;
-  cursor: pointer;
 }
 
 .ticker:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* ── Winner Stat Row ─────────────────────────────── */
