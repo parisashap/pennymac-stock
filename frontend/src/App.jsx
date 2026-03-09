@@ -647,7 +647,7 @@ export default function App() {
                       <td><ChangeBadge value={rel} /></td>
                       <td>
                         {m.beta != null
-                          ? <span className="beta-inline">β {m.beta.toFixed(2)}</span>
+                          ? <span className="beta-inline">{m.beta.toFixed(2)}</span>
                           : <span className="dim">—</span>}
                       </td>
                       <td>
