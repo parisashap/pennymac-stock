@@ -9,13 +9,12 @@ def lambda_handler(event, context):
     table_name = os.getenv("DYNAMODB_TABLE_NAME", "stock_mover_table")
     api_key = os.getenv("MASSIVE_API_KEY")
 
-    # Skip weekends — stock market is closed Saturday (5) and Sunday (6)
+    # Skip Sunday — cron runs Tue-Sat to fetch previous day's data; Sunday has no prior trading day
     from datetime import datetime, timezone
     today = datetime.now(timezone.utc).weekday()  # 0=Mon ... 6=Sun
-    if today >= 5:
-        day_name = "Saturday" if today == 5 else "Sunday"
-        print(f"[HANDLER] Skipping — today is {day_name}, market is closed.")
-        return {"statusCode": 200, "body": json.dumps({"message": f"Skipped ({day_name})"})}
+    if today == 6:
+        print("[HANDLER] Skipping — today is Sunday, no prior trading day to fetch.")
+        return {"statusCode": 200, "body": json.dumps({"message": "Skipped (Sunday)"})}
 
     print(f"[HANDLER] Starting ingestion — table: {table_name}")
 

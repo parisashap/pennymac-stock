@@ -8,7 +8,7 @@ A serverless AWS pipeline that tracks a watchlist of tech stocks, finds the bigg
 
 ## What it does
 
-Every weekday at 22:00 UTC (2:00 PM PST / 5:00 PM ET), a Lambda function fetches that day's data for 6 tickers, picks the biggest mover by absolute % change, enriches it with beta and 52-week range, and stores it in DynamoDB. A React frontend pulls from an API Gateway endpoint and renders the winner card, price history chart, and S&P 500 comparison.
+Every weekday at 13:00 UTC (9:00 AM ET / 6:00 AM PDT), a Lambda function fetches that day's data for 6 tickers, picks the biggest mover by absolute % change, enriches it with beta and 52-week range, and stores it in DynamoDB. A React frontend pulls from an API Gateway endpoint and renders the winner card, price history chart, and S&P 500 comparison.
 
 **Watchlist Companies:** Apple · Microsoft · Google · Amazon · Telsa · Nvidia
 
@@ -17,7 +17,7 @@ Every weekday at 22:00 UTC (2:00 PM PST / 5:00 PM ET), a Lambda function fetches
 ## Architecture 
 
 ```
-EventBridge (cron Mon-Fri 22:00 UTC)
+EventBridge (cron Tue-Sat 13:00 UTC)
         │
         ▼
 Lambda: stock-ingest
