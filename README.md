@@ -86,6 +86,50 @@ stockpipeline-mac/
 
 ---
 
+## How to Deploy
+
+### Prerequisites
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.3
+- [AWS CLI](https://aws.amazon.com/cli/) configured (`aws configure`)
+- [Node.js](https://nodejs.org/) >= 18
+- A [Massive API](https://massive.com) key (free tier)
+
+### 1. Clone the repo
+```bash
+git clone https://github.com/parisashap/stockpipeline-mac.git
+cd stockpipeline-mac
+```
+
+### 2. Deploy infrastructure
+```bash
+cd infrastructure
+terraform init
+terraform apply -var="massive_api_key=YOUR_MASSIVE_API_KEY"
+```
+This provisions DynamoDB, two Lambdas, EventBridge rule, API Gateway, S3, and CloudFront.
+
+### 3. Deploy Lambda code
+```bash
+cd backend/ingestion
+pip install requests boto3 python-dotenv --target .
+zip -r ../../lambda_deploy.zip . --exclude "*.pyc" --exclude "__pycache__/*"
+
+aws lambda update-function-code --function-name stock-ingest --zip-file fileb://../../lambda_deploy.zip --region us-west-1
+aws lambda update-function-code --function-name stock-api --zip-file fileb://../../lambda_deploy.zip --region us-west-1
+```
+
+### 4. Build and deploy frontend
+```bash
+cd frontend
+npm install && npm run build
+aws s3 sync dist s3://YOUR_S3_BUCKET --delete
+aws cloudfront create-invalidation --distribution-id YOUR_CF_ID --paths "/*"
+```
+
+> After the first deploy, all future deploys are handled automatically by GitHub Actions on every push to `main`.
+
+---
+
 ## CI/CD
 
 Every push to `main` automatically deploys both Lambda functions and rebuilds + syncs the frontend to S3 via GitHub Actions. CloudFront cache is invalidated on each deploy.
