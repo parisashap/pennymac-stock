@@ -6,7 +6,7 @@
 #   - IAM roles + least-privilege policies for both Lambdas
 #   - Lambda: stock-ingest  (EventBridge cron trigger)
 #   - Lambda: stock-api     (API Gateway trigger)
-#   - EventBridge rule      (daily cron at 03:35 UTC)
+#   - EventBridge rule      (daily cron at 22:00 UTC)
 #   - API Gateway REST API  (GET /movers)
 # ============================================================
 
@@ -191,14 +191,14 @@ resource "aws_lambda_function" "stock_api" {
 }
 
 # ============================================================
-# EventBridge — triggers stock-ingest Mon-Fri at 21:20 UTC
-# (1:20 PM PST / 4:20 PM ET — 20 min after US markets close)
+# EventBridge — triggers stock-ingest Mon-Fri at 22:00 UTC
+# (2:00 PM PST / 5:00 PM ET — after US markets close)
 # ============================================================
 
 resource "aws_cloudwatch_event_rule" "stock_ingest_schedule" {
   name                = "stock-ingest-daily"
-  description         = "Fires Mon-Fri at 21:20 UTC (1:20 PM PST / 4:20 PM ET) to ingest the day's top mover"
-  schedule_expression = "cron(20 21 ? * MON-FRI *)"
+  description         = "Fires Mon-Fri at 22:00 UTC (2:00 PM PST / 5:00 PM ET) to ingest the day's top mover"
+  schedule_expression = "cron(0 22 ? * MON-FRI *)"
 }
 
 resource "aws_cloudwatch_event_target" "stock_ingest" {
