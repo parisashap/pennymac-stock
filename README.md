@@ -1,34 +1,34 @@
 # Stock Pipeline — Daily Mover Dashboard
 
-A serverless AWS pipeline that tracks a watchlist of tech stocks, finds the biggest daily mover, and displays it on a live dashboard with price charts and market context.
+A serverless AWS pipeline that tracks a watchlist of tech stocks, finds the biggest (absolute  % change) daily mover, and displays it on a live dashboard with price charts and market context.
 
-**Live Demo:** https://d352bbeld15umk.cloudfront.net
+**Live Website Link:** https://d352bbeld15umk.cloudfront.net
 
 ---
 
 ## What it does
 
-Every weekday at 10 PM UTC, a Lambda function fetches the previous day's OHLC data for 6 tickers, picks the biggest mover by absolute % change, enriches it with beta and 52-week range, and stores it in DynamoDB. A React frontend pulls from an API Gateway endpoint and renders the winner card, price history chart, and S&P 500 comparison.
+Every weekday at 21:20 UTC (1:20 PM PST / 4:20 PM ET), a Lambda function fetches that day's data for 6 tickers, picks the biggest mover by absolute % change, enriches it with beta and 52-week range, and stores it in DynamoDB. A React frontend pulls from an API Gateway endpoint and renders the winner card, price history chart, and S&P 500 comparison.
 
-**Watchlist:** AAPL · MSFT · GOOGL · AMZN · TSLA · NVDA
+**Watchlist Companies:** Apple · Microsoft · Google · Amazon · Telsa · Nvidia
 
 ---
 
-## Architecture
+## Architecture 
 
 ```
-EventBridge (cron Mon-Fri 22:00 UTC)
+EventBridge (cron Mon-Fri 21:20 UTC)
         │
         ▼
 Lambda: stock-ingest
-  ├── Fetches prev-day OHLC for 6 tickers (Massive API)
+  ├── Fetches prev-day data for 6 tickers (Massive API)
   ├── Picks biggest mover by absolute % change
-  ├── Enriches: S&P 500 comparison, beta, 52-week range
-  └── Writes one record to DynamoDB
+  ├── Enriches: S&P 500 comparison, beta, and 52-week range
+  └── Writes one record to DynamoDB with those fields fetched from Massive API
         │
         ▼
 DynamoDB: stock_mover_table
-  └── Partition key: date (ISO string)
+  └── Partition (primary) key: date (ISO string)
         │
         ▼
 API Gateway ──► Lambda: stock-api
@@ -81,7 +81,7 @@ stockpipeline-mac/
 │   └── outputs.tf
 └── .github/
     └── workflows/
-        └── deploy.yml          # CI/CD: auto-deploy on push to main
+        └── deploy.yml          # CI/CD: auto-deploy on push to main on GitHub
 ```
 
 ---
@@ -140,19 +140,13 @@ Every push to `main` automatically deploys both Lambda functions and rebuilds + 
 
 - No secrets in source code — API key stored as Lambda env var, injected by Terraform
 - Least-privilege IAM — `stock-ingest` has only `dynamodb:PutItem`; `stock-api` has only `dynamodb:Scan` + `dynamodb:GetItem`
-- `.gitignore` excludes `.env`, `*.tfvars`, and all credential files
-- Weekend guard — Lambda skips execution on Saturday/Sunday
+- `.gitignore` excludes `.env`, `*.tfvars`, and all other credential files
+- Weekend guard — Lambda skips execution on Saturday/Sunday because the market is closed on the weekends
 
 ---
 
 ## Challenges & Trade-offs
 
-**Infrastructure was the biggest learning curve.** I hadn't worked with Terraform before and figuring out how to split responsibilities between two Lambda functions — one for ingestion, one for the API — took some trial and error. Getting them to work together with the right IAM roles, API Gateway routing, and EventBridge trigger all wired up correctly was the most complex part of the project.
+A big part of this project was learning Terraform while also learning how to connect the rest of the AWS stack. The hardest part was not writing any single component in isolation, but getting Lambda, DynamoDB, API Gateway, EventBridge, S3, CloudFront, and GitHub Actions to work together effortlessly. I also learned a lot about infrastructure as code through Terraform. One of the biggest benefits was how much easier it became to update and manage the AWS resources as the project changed, rather than manually reconfiguring pieces of the stack.
 
-**Connecting all the pieces.** The hardest part wasn't writing any single component, it was making sure everything talked to each other correctly — Lambda writing to DynamoDB, API Gateway invoking the right handler, CloudFront serving the frontend while API Gateway handled the backend, and GitHub Actions deploying all of it automatically on push.
-
-**Rate limits on the free tier.** The Massive API rate-limits pretty aggressively. The ingestion Lambda adds a 12-second delay between each ticker request and retries on 429s, which means the full run takes around 2 minutes. It works within Lambda's timeout but it's not fast — a paid tier or a different data source would fix this.
-
-**DynamoDB at this scale is simple by design.** One record per trading day means the table stays tiny and a full scan is fine. 
-
-**Beta is computed once, not on every request.** Rather than recalculating beta (covariance over 52 weeks of returns) on every API call, it gets computed during ingestion and stored. Keeps the frontend fast and the API stateless.
+One trade-off came from using the free tier of the Massive API. The API rate-limits pretty aggressively, so the ingestion Lambda includes a 12-second delay between ticker requests and retries on HTTP 429 responses. That keeps the pipeline reliable enough to stay within Lambda's timeout, but it also means a full ingestion run takes roughly two minutes. A paid tier or a different market data source would make this much faster.

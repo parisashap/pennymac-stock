@@ -191,14 +191,14 @@ resource "aws_lambda_function" "stock_api" {
 }
 
 # ============================================================
-# EventBridge — triggers stock-ingest Mon-Fri at 22:00 UTC
-# (6:00 PM EDT — after US markets close and data is available)
+# EventBridge — triggers stock-ingest Mon-Fri at 21:20 UTC
+# (1:20 PM PST / 4:20 PM ET — 20 min after US markets close)
 # ============================================================
 
 resource "aws_cloudwatch_event_rule" "stock_ingest_schedule" {
   name                = "stock-ingest-daily"
-  description         = "Fires Mon-Fri at 22:00 UTC (6:00 PM EDT) to ingest the day's top mover"
-  schedule_expression = "cron(0 22 ? * MON-FRI *)"
+  description         = "Fires Mon-Fri at 21:20 UTC (1:20 PM PST / 4:20 PM ET) to ingest the day's top mover"
+  schedule_expression = "cron(20 21 ? * MON-FRI *)"
 }
 
 resource "aws_cloudwatch_event_target" "stock_ingest" {
